@@ -7,7 +7,7 @@ on:
         required: false
         type: string
         default: '["18", "20", "22"]'
-      run-int:
+      run-lint:
         required: false
         type: boolean
         default: true
@@ -38,8 +38,8 @@ jobs:
         run: npm ci
         
       - name: Ejecutar Linter
-        if: ${{ inputs.run-int }}
-        run: npm run lint 
+        if: ${{ inputs.run-lint }}
+        run: npm run lint
         
       - name: Ejecutar Pruebas unitarias e integracion
         run: npm test -- --coverage
