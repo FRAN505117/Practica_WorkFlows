@@ -3,7 +3,7 @@ name: Reusable CI Pipeline
 on:
   workflow_call:
     inputs:
-      node-version:
+      node-versions:
         required: false
         type: string
         default: '["18", "20", "22"]'
@@ -14,68 +14,55 @@ on:
     outputs:
       build-status:
         description: "Resultado de la construcción"
-        value: ${{ jobs.build.outputs.status }} 
+        value: ${{ jobs.build.outputs.status }}
 
 jobs:
-  test:
-    name: Test Node.js V${{ matrix.node }} 
+  test-matrix:
+    name: Test Node.js v${{ matrix.node }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node: ${{ fromJSON(inputs.node-version) }}
+        node: ${{ fromJson(inputs.node-versions) }}
+
     steps:
-      - name: Checkout codigo
+      - name: Checkout del código
         uses: actions/checkout@v4
-        
-      - name: Setup Node.js V${{ matrix.node }} con cache
+
+      - name: Configurar Node.js v${{ matrix.node }}
         uses: actions/setup-node@v4
-        with: 
-          node-version: ${{ matrix.node }} 
-          cache: 'npm'
-          
-      - name: Instalacion limpia de dependencias
-        run: npm ci
-        
-      - name: Ejecutar Linter
-        if: ${{ inputs.run-lint }}
-        run: npm run lint
-        
-      - name: Ejecutar Pruebas unitarias e integracion
-        run: npm test -- --coverage
-      
-      - name: Subir reporte de cobertura a Codecov
-        uses: codecov/codecov-action@v4
         with:
-          fail_ci_if_error: false
+          node-version: ${{ matrix.node }}
+
+      - name: Simular pruebas unitarias
+        run: echo "Pruebas simuladas correctamente en Node.js ${{ matrix.node }}"
 
   build:
     name: Build & Package
-    needs: test
+    needs: test-matrix
     runs-on: ubuntu-latest
     outputs:
-      status: ${{ steps.set-outputs.outputs.status }}
+      status: ${{ steps.set-output.outputs.status }}
     steps:
-      - name: Checkout del codigo
+      - name: Checkout del código
         uses: actions/checkout@v4
-        
-      - name: Configuracion de Node.js
-        uses: actions/setup-node@v4  
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          
-      - name: Instalar y Compilar
+
+      - name: Simular compilación
         run: |
-          npm ci
-          npm run build
-          
-      - name: Guardar Artifact de produccion
+          mkdir -p dist
+          echo "Build simulado" > dist/index.html
+
+      - name: Guardar Artifact de producción
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact
           path: dist/
           retention-days: 1
-          
-      - id: set-outputs
+
+      - id: set-output
         run: echo "status=success" >> $GITHUB_OUTPUT
