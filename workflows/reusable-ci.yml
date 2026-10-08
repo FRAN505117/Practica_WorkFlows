@@ -1,0 +1,81 @@
+name: Reusable CI Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        type: string
+        default: '["18", "20", "22"]'
+      run-int:
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      build-status:
+        description: "Resultado de la construcción"
+        value: ${{ jobs.build.outputs.status }} 
+
+jobs:
+  test:
+    name: Test Node.js V${{ matrix.node }} 
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ${{ fromJSON(inputs.node-version) }}
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js V${{ matrix.node }} con cache
+        uses: actions/setup-node@v4
+        with: 
+          node-version: ${{ matrix.node }} 
+          cache: 'npm'
+          
+      - name: Instalacion limpia de dependencias
+        run: npm ci
+        
+      - name: Ejecutar Linter
+        if: ${{ inputs.run-int }}
+        run: npm run lint 
+        
+      - name: Ejecutar Pruebas unitarias e integracion
+        run: npm test -- --coverage
+      
+      - name: Subir reporte de cobertura a Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: false
+
+  build:
+    name: Build & Package
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.set-outputs.outputs.status }}
+    steps:
+      - name: Checkout del codigo
+        uses: actions/checkout@v4
+        
+      - name: Configuracion de Node.js
+        uses: actions/setup-node@v4  
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Instalar y Compilar
+        run: |
+          npm ci
+          npm run build
+          
+      - name: Guardar Artifact de produccion
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: dist/
+          retention-days: 1
+          
+      - id: set-outputs
+        run: echo "status=success" >> $GITHUB_OUTPUT
