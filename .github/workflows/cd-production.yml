@@ -28,7 +28,7 @@ jobs:
   quality-gate:
     uses: ./.github/workflows/reusable-ci.yml
     with:
-      node-versions: '["20", "22"]'
+      node-version: '["20", "22"]'
       run-lint: true
 
   deploy-staging:
